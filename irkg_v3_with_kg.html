@@ -1,0 +1,1332 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IR-KG System v2 — Competency Intelligence Platform</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --bg: #070b14;
+  --bg2: #0d1424;
+  --bg3: #131d30;
+  --bg4: #1a2540;
+  --border: #1e2d47;
+  --border2: #263550;
+  --cyan: #00e5ff;
+  --purple: #8b5cf6;
+  --green: #00d68f;
+  --amber: #ffb020;
+  --red: #ff4d6d;
+  --blue: #3b82f6;
+  --pink: #f472b6;
+  --text: #e8f0fe;
+  --text2: #8899bb;
+  --text3: #3d5070;
+  --esco: #00e5ff;
+  --onet: #ffb020;
+  --skkni: #00d68f;
+  --cpl: #a78bfa;
+}
+
+*{margin:0;padding:0;box-sizing:border-box;}
+
+body {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+/* ── HEADER ── */
+header {
+  background: linear-gradient(90deg, #0d1424 0%, #0f1628 100%);
+  border-bottom: 1px solid var(--border);
+  padding: 0 2rem;
+  height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky; top: 0; z-index: 200;
+}
+.logo { display:flex; align-items:center; gap:12px; }
+.logo-icon {
+  width:34px; height:34px; border-radius:8px;
+  background: linear-gradient(135deg,#00e5ff22,#8b5cf622);
+  border:1px solid #00e5ff44;
+  display:flex; align-items:center; justify-content:center;
+  font-size:16px;
+}
+.logo-name { font-size:15px; font-weight:800; letter-spacing:-0.3px; }
+.logo-name span { color:var(--cyan); }
+.logo-ver { font-size:10px; color:var(--text3); font-family:'IBM Plex Mono',monospace; margin-top:1px; }
+
+nav { display:flex; gap:2px; }
+nav button {
+  background:none; border:1px solid transparent;
+  padding:6px 15px; color:var(--text2);
+  font-family:'Plus Jakarta Sans',sans-serif;
+  font-size:12px; font-weight:600;
+  cursor:pointer; border-radius:6px; transition:all .2s;
+}
+nav button:hover { color:var(--text); background:var(--bg3); }
+nav button.active { color:var(--cyan); border-color:var(--cyan); background:rgba(0,229,255,.07); }
+
+.header-right { display:flex; align-items:center; gap:16px; }
+.prodi-tag {
+  background: var(--bg3); border:1px solid var(--border2);
+  border-radius:6px; padding:5px 12px;
+  font-size:11px; color:var(--text2);
+  font-family:'IBM Plex Mono',monospace;
+}
+.live-dot {
+  display:flex; align-items:center; gap:6px;
+  font-size:11px; color:var(--green);
+  font-family:'IBM Plex Mono',monospace;
+}
+.live-dot::before {
+  content:''; width:7px; height:7px;
+  background:var(--green); border-radius:50%;
+  animation: blink 2s infinite;
+}
+@keyframes blink { 0%,100%{opacity:1;} 50%{opacity:.2;} }
+
+/* ── LAYOUT ── */
+main { padding:1.5rem 2rem; }
+
+.view { display:none; }
+.view.active { display:block; animation: fadeIn .3s ease; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(8px);} to{opacity:1;transform:translateY(0);} }
+
+/* ── STAT CARDS ── */
+.stats-row {
+  display:grid; grid-template-columns:repeat(5,1fr); gap:1rem; margin-bottom:1.5rem;
+}
+.stat { background:var(--bg2); border:1px solid var(--border); border-radius:10px; padding:14px 16px; position:relative; overflow:hidden; }
+.stat::after { content:''; position:absolute; top:0; left:0; right:0; height:2px; }
+.stat.c1::after{background:var(--cyan);}
+.stat.c2::after{background:var(--purple);}
+.stat.c3::after{background:var(--green);}
+.stat.c4::after{background:var(--amber);}
+.stat.c5::after{background:var(--red);}
+.stat-val { font-size:26px; font-weight:800; letter-spacing:-1px; line-height:1.1; margin-bottom:3px; }
+.stat-lbl { font-size:10px; color:var(--text2); font-family:'IBM Plex Mono',monospace; letter-spacing:.5px; }
+.stat-sub { font-size:9px; color:var(--text3); font-family:'IBM Plex Mono',monospace; margin-top:5px; }
+
+/* ── PANEL ── */
+.panel { background:var(--bg2); border:1px solid var(--border); border-radius:12px; overflow:hidden; margin-bottom:1.5rem; }
+.ph {
+  padding:12px 18px; border-bottom:1px solid var(--border);
+  display:flex; align-items:center; justify-content:space-between;
+  background:rgba(255,255,255,.015);
+}
+.pt {
+  font-size:11px; font-weight:700; letter-spacing:1.2px;
+  text-transform:uppercase; color:var(--text2);
+  display:flex; align-items:center; gap:8px;
+}
+.pt .dot { width:6px; height:6px; border-radius:50%; }
+.pb { padding:18px; }
+
+/* ── GRID LAYOUTS ── */
+.grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; }
+.grid-3 { display:grid; grid-template-columns:320px 1fr 1fr; gap:1.5rem; }
+.grid-aside { display:grid; grid-template-columns:300px 1fr; gap:1.5rem; }
+
+/* ── CPL LIST ── */
+.cpl-search {
+  width:100%; background:var(--bg3); border:1px solid var(--border2);
+  border-radius:7px; padding:8px 12px;
+  color:var(--text); font-size:12px; font-family:'Plus Jakarta Sans',sans-serif;
+  margin-bottom:10px; outline:none; transition:border-color .2s;
+}
+.cpl-search:focus { border-color:var(--cyan); }
+.cpl-search::placeholder { color:var(--text3); }
+.cpl-scroll { overflow-y:auto; max-height:calc(100vh - 280px); }
+.cpl-item {
+  padding:9px 11px; border-radius:7px; cursor:pointer;
+  margin-bottom:3px; border:1px solid transparent; transition:all .15s;
+}
+.cpl-item:hover { background:var(--bg3); border-color:var(--border2); }
+.cpl-item.selected { background:rgba(0,229,255,.07); border-color:var(--cyan); }
+.cpl-row1 { display:flex; justify-content:space-between; align-items:center; margin-bottom:3px; }
+.cpl-id { font-size:10px; font-family:'IBM Plex Mono',monospace; color:var(--cpl); font-weight:700; }
+.cpl-badge { font-size:9px; font-family:'IBM Plex Mono',monospace; padding:2px 7px; border-radius:10px; }
+.cpl-text { font-size:11px; color:var(--text2); line-height:1.4; margin-bottom:4px; }
+.mini-bar-track { height:3px; background:var(--bg4); border-radius:2px; overflow:hidden; }
+.mini-bar-fill { height:100%; border-radius:2px; transition:width 1s; }
+
+/* ── CAREER CARDS ── */
+.career-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:12px; }
+.career-card {
+  background:var(--bg3); border:1px solid var(--border2);
+  border-radius:10px; padding:14px; cursor:pointer;
+  transition:all .2s; position:relative; overflow:hidden;
+}
+.career-card:hover { border-color:var(--cyan); transform:translateY(-2px); box-shadow:0 8px 24px rgba(0,229,255,.08); }
+.career-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; }
+.career-card.top::before { background:linear-gradient(90deg,var(--green),var(--cyan)); }
+.career-card.mid::before { background:linear-gradient(90deg,var(--cyan),var(--purple)); }
+.career-card.low::before { background:linear-gradient(90deg,var(--amber),var(--red)); }
+.career-domain {
+  font-size:9px; font-family:'IBM Plex Mono',monospace; font-weight:700;
+  letter-spacing:1px; text-transform:uppercase; margin-bottom:6px;
+}
+.career-title { font-size:13px; font-weight:700; margin-bottom:4px; line-height:1.3; }
+.career-sub { font-size:10px; color:var(--text2); margin-bottom:10px; line-height:1.4; }
+.match-row { display:flex; align-items:center; gap:8px; }
+.match-pct { font-size:18px; font-weight:800; font-family:'IBM Plex Mono',monospace; }
+.match-track { flex:1; height:5px; background:var(--bg4); border-radius:3px; overflow:hidden; }
+.match-fill { height:100%; border-radius:3px; }
+.career-sources { display:flex; gap:5px; margin-top:8px; }
+.src-tag {
+  font-size:8px; font-family:'IBM Plex Mono',monospace; font-weight:700;
+  padding:2px 6px; border-radius:3px;
+}
+
+/* ── CPL RADAR / STRENGTH ── */
+.cpl-strength-list { display:flex; flex-direction:column; gap:10px; }
+.strength-item {}
+.strength-header { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:5px; }
+.strength-id { font-size:10px; font-family:'IBM Plex Mono',monospace; color:var(--cpl); }
+.strength-score { font-size:12px; font-weight:800; font-family:'IBM Plex Mono',monospace; }
+.strength-track { height:7px; background:var(--bg4); border-radius:4px; overflow:hidden; margin-bottom:4px; }
+.strength-fill { height:100%; border-radius:4px; transition:width 1.2s cubic-bezier(.4,0,.2,1); }
+.strength-label { font-size:10px; color:var(--text2); line-height:1.3; }
+.zone-badge { display:inline-block; padding:1px 7px; border-radius:3px; font-size:9px; font-family:'IBM Plex Mono',monospace; margin-left:6px; }
+
+/* ── CPL IMPROVEMENT ── */
+.improve-card {
+  background:var(--bg3); border:1px solid var(--border2);
+  border-radius:10px; margin-bottom:12px; overflow:hidden;
+}
+.improve-head {
+  padding:12px 16px; display:flex; align-items:center;
+  justify-content:space-between; border-bottom:1px solid var(--border);
+  cursor:pointer;
+}
+.improve-body { padding:14px 16px; }
+.compare-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px; }
+.compare-box { background:var(--bg4); border-radius:8px; padding:12px; }
+.compare-label { font-size:9px; font-family:'IBM Plex Mono',monospace; letter-spacing:1px; text-transform:uppercase; margin-bottom:6px; }
+.compare-text { font-size:12px; line-height:1.5; color:var(--text); }
+.diff-tag {
+  display:inline-block; padding:1px 6px; border-radius:3px;
+  font-size:9px; font-family:'IBM Plex Mono',monospace; margin:2px 2px 0 0;
+}
+.diff-add { background:rgba(0,214,143,.15); color:var(--green); border:1px solid rgba(0,214,143,.3); }
+.diff-remove { background:rgba(255,77,109,.1); color:var(--red); border:1px solid rgba(255,77,109,.3); text-decoration:line-through; }
+.diff-neutral { background:rgba(139,92,246,.1); color:var(--purple); border:1px solid rgba(139,92,246,.3); }
+
+/* ── GAP ANALYSIS ── */
+.gap-table { width:100%; border-collapse:collapse; font-size:11px; }
+.gap-table th {
+  text-align:left; padding:8px 12px;
+  font-size:9px; font-family:'IBM Plex Mono',monospace;
+  letter-spacing:1px; text-transform:uppercase; color:var(--text3);
+  border-bottom:1px solid var(--border);
+}
+.gap-table td { padding:9px 12px; border-bottom:1px solid rgba(30,45,71,.5); vertical-align:middle; }
+.gap-table tr:hover td { background:rgba(255,255,255,.02); }
+.priority-pill { display:inline-block; padding:2px 9px; border-radius:20px; font-size:9px; font-family:'IBM Plex Mono',monospace; font-weight:700; }
+.p-high { background:rgba(255,77,109,.15); color:var(--red); border:1px solid rgba(255,77,109,.3); }
+.p-med { background:rgba(255,176,32,.15); color:var(--amber); border:1px solid rgba(255,176,32,.3); }
+.p-low { background:rgba(0,229,255,.1); color:var(--cyan); border:1px solid rgba(0,229,255,.2); }
+
+/* ── SANKEY ── */
+#sankey-container { background:var(--bg); border-radius:8px; overflow:hidden; }
+
+/* ── SUMMARY REPORT ── */
+.summary-section { margin-bottom:24px; }
+.summary-section h3 { font-size:13px; font-weight:700; color:var(--cyan); margin-bottom:10px; padding-bottom:6px; border-bottom:1px solid var(--border); }
+.summary-p { font-size:12px; color:var(--text2); line-height:1.8; margin-bottom:8px; }
+.highlight-box {
+  background:rgba(0,229,255,.05); border-left:3px solid var(--cyan);
+  border-radius:0 8px 8px 0; padding:12px 16px; margin:12px 0;
+}
+.highlight-box.green { background:rgba(0,214,143,.05); border-color:var(--green); }
+.highlight-box.amber { background:rgba(255,176,32,.05); border-color:var(--amber); }
+.highlight-box.red { background:rgba(255,77,109,.05); border-color:var(--red); }
+.finding-row { display:flex; gap:8px; align-items:flex-start; margin-bottom:8px; }
+.finding-num { flex-shrink:0; width:20px; height:20px; border-radius:50%; background:var(--cyan); color:var(--bg); font-size:10px; font-weight:800; display:flex; align-items:center; justify-content:center; margin-top:1px; }
+.finding-text { font-size:12px; color:var(--text2); line-height:1.6; }
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+
+.ovf { overflow-y:auto; max-height:480px; }
+.tag { display:inline-block; padding:2px 8px; border-radius:4px; font-size:10px; font-family:'IBM Plex Mono',monospace; }
+.section-divider { height:1px; background:var(--border); margin:20px 0; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">🧠</div>
+    <div>
+      <div class="logo-name">IR<span>-KG</span> Intelligence Platform</div>
+      <div class="logo-ver">DSR Prototype v2.0 · CRI-KG Model · config: v1.4_hybrid_onet_boost</div>
+    </div>
+  </div>
+  <nav>
+    <button class="active" onclick="sw('dashboard')">📊 Dashboard</button>
+    <button onclick="sw('kg')">🕸️ Knowledge Graph</button>
+    <button onclick="sw('career')">💼 Rekomendasi Karir</button>
+    <button onclick="sw('improve')">🔧 Penyempurnaan CPL</button>
+    <button onclick="sw('gap')">🔍 Gap Analysis</button>
+    <button onclick="sw('report')">📋 Laporan Lengkap</button>
+  </nav>
+  <div class="header-right">
+    <div class="prodi-tag">Prodi: Teknik Informatika · 15 CPL</div>
+    <div class="live-dot">MODEL AKTIF</div>
+  </div>
+</header>
+
+<main>
+
+<!-- ══════════════════════════════════════
+     VIEW 1: DASHBOARD
+══════════════════════════════════════ -->
+<div id="view-dashboard" class="view active">
+
+  <div class="stats-row">
+    <div class="stat c1"><div class="stat-val" style="color:var(--cyan)">15</div><div class="stat-lbl">CPL Terpetakan</div><div class="stat-sub">Coverage 100%</div></div>
+    <div class="stat c2"><div class="stat-val" style="color:var(--purple)">0.774</div><div class="stat-lbl">Avg CRI-KG</div><div class="stat-sub">P10:0.612 · P90:0.931</div></div>
+    <div class="stat c3"><div class="stat-val" style="color:var(--green)">47</div><div class="stat-lbl">Bidang Karir</div><div class="stat-sub">ESCO + O*NET</div></div>
+    <div class="stat c4"><div class="stat-val" style="color:var(--amber)">8</div><div class="stat-lbl">CPL Perlu Revisi</div><div class="stat-sub">Skor &lt; 0.75</div></div>
+    <div class="stat c5"><div class="stat-val" style="color:var(--red)">6</div><div class="stat-lbl">Gap Kompetensi</div><div class="stat-sub">Industri vs Kurikulum</div></div>
+  </div>
+
+  <div class="grid-aside">
+    <div>
+      <div class="panel" style="height:calc(100vh - 220px)">
+        <div class="ph"><span class="pt"><span class="dot" style="background:var(--cpl)"></span>15 Butir CPL</span><span style="font-size:10px;color:var(--text3);font-family:'IBM Plex Mono',monospace">klik untuk detail</span></div>
+        <div class="pb" style="padding-bottom:8px">
+          <input class="cpl-search" placeholder="Cari CPL..." oninput="filterCPL(this.value)">
+          <div class="cpl-scroll" id="cpl-list"></div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="panel">
+        <div class="ph"><span class="pt"><span class="dot" style="background:var(--cyan)"></span>Detail CPL</span><span id="dash-cpl-lbl" style="font-size:10px;color:var(--text3);font-family:'IBM Plex Mono',monospace">— pilih CPL</span></div>
+        <div class="pb ovf" id="dash-detail"><div style="text-align:center;padding:40px;color:var(--text3);font-size:12px;font-family:'IBM Plex Mono',monospace">← Pilih CPL dari daftar</div></div>
+      </div>
+      <div class="panel">
+        <div class="ph"><span class="pt"><span class="dot" style="background:var(--purple)"></span>CRI-KG Score — Semua CPL</span></div>
+        <div class="pb ovf" id="cri-bars"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     VIEW KG: KNOWLEDGE GRAPH
+══════════════════════════════════════ -->
+<div id="view-kg" class="view">
+  <div class="panel" style="margin-bottom:1rem">
+    <div class="ph">
+      <span class="pt"><span class="dot" style="background:var(--cyan)"></span>Knowledge Graph — Peta Relasi Kompetensi Lintas Framework</span>
+      <div style="display:flex;align-items:center;gap:10px">
+        <select id="kg-filter" onchange="filterKG(this.value)" style="background:var(--bg3);border:1px solid var(--border2);color:var(--text2);font-size:11px;font-family:'IBM Plex Mono',monospace;padding:4px 10px;border-radius:5px;outline:none;cursor:pointer">
+          <option value="all">Semua Node</option>
+          <option value="CPL">CPL saja</option>
+          <option value="ESCO">CPL + ESCO</option>
+          <option value="ONET">CPL + O*NET</option>
+          <option value="SKKNI">CPL + SKKNI</option>
+        </select>
+        <span style="font-size:10px;color:var(--text3);font-family:'IBM Plex Mono',monospace">Drag · Zoom · Hover · Klik CPL</span>
+      </div>
+    </div>
+    <div style="position:relative;height:540px;background:var(--bg);border-radius:0 0 12px 12px;overflow:hidden">
+      <svg id="kg-svg" style="width:100%;height:100%"></svg>
+
+      <!-- Node Detail Panel -->
+      <div id="kg-node-detail" style="position:absolute;top:14px;left:14px;background:rgba(7,11,20,.93);border:1px solid var(--border2);border-radius:10px;padding:14px 16px;min-width:220px;max-width:260px;display:none;backdrop-filter:blur(6px)">
+        <div id="kg-nd-type" style="font-size:9px;font-family:'IBM Plex Mono',monospace;letter-spacing:1px;text-transform:uppercase;margin-bottom:5px"></div>
+        <div id="kg-nd-name" style="font-size:13px;font-weight:700;line-height:1.4;margin-bottom:10px"></div>
+        <div id="kg-nd-rows"></div>
+      </div>
+
+      <!-- Controls -->
+      <div style="position:absolute;top:14px;right:14px;display:flex;flex-direction:column;gap:5px">
+        <button onclick="kgZoom(1.35)" style="width:32px;height:32px;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;color:var(--text2);font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center">+</button>
+        <button onclick="kgZoom(0.74)" style="width:32px;height:32px;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;color:var(--text2);font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center">−</button>
+        <button onclick="kgReset()" style="width:32px;height:32px;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;color:var(--text2);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center">⟳</button>
+      </div>
+
+      <!-- Legend -->
+      <div style="position:absolute;bottom:14px;left:14px;background:rgba(7,11,20,.88);border:1px solid var(--border);border-radius:8px;padding:10px 14px;display:flex;gap:16px;backdrop-filter:blur(4px)">
+        <div style="display:flex;align-items:center;gap:6px;font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--text2)"><div style="width:11px;height:11px;border-radius:50%;background:var(--cpl)"></div>CPL</div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--text2)"><div style="width:10px;height:10px;border-radius:50%;background:var(--esco)"></div>ESCO</div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--text2)"><div style="width:10px;height:10px;border-radius:50%;background:var(--onet)"></div>O*NET</div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--text2)"><div style="width:10px;height:10px;border-radius:50%;background:var(--skkni)"></div>SKKNI</div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--text2)"><div style="width:22px;height:2px;background:rgba(0,229,255,.5)"></div>S_final</div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--text2)"><div style="width:22px;height:2px;background:rgba(0,229,255,.3);border-top:2px dashed rgba(0,229,255,.4)"></div>isRelatedTo</div>
+      </div>
+
+      <!-- Stats overlay -->
+      <div style="position:absolute;bottom:14px;right:14px;background:rgba(7,11,20,.88);border:1px solid var(--border);border-radius:8px;padding:10px 14px;backdrop-filter:blur(4px)">
+        <div id="kg-stats" style="font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--text3)">nodes: — · edges: —</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mapping Evidence Table -->
+  <div class="grid-2">
+    <div class="panel">
+      <div class="ph"><span class="pt"><span class="dot" style="background:var(--purple)"></span>Evidence Path — Node yang Dipilih</span></div>
+      <div class="pb ovf" id="kg-evidence" style="min-height:160px"><div style="text-align:center;padding:30px;color:var(--text3);font-size:11px;font-family:'IBM Plex Mono',monospace">← Klik node CPL di graf</div></div>
+    </div>
+    <div class="panel">
+      <div class="ph"><span class="pt"><span class="dot" style="background:var(--amber)"></span>Statistik Relasi per Framework</span></div>
+      <div class="pb" id="kg-stats-panel"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     VIEW 2: REKOMENDASI KARIR
+══════════════════════════════════════ -->
+<div id="view-career" class="view">
+  <div class="panel" style="margin-bottom:1rem">
+    <div class="ph">
+      <span class="pt"><span class="dot" style="background:var(--green)"></span>Profil Lulusan — Rekomendasi Karir Berdasarkan IR-KG</span>
+      <span style="font-size:11px;color:var(--text2)">Sumber: ESCO + O*NET · Match berbasis CRI-KG score</span>
+    </div>
+    <div class="pb">
+      <div style="background:linear-gradient(135deg,rgba(0,229,255,.06),rgba(139,92,246,.06));border:1px solid var(--border2);border-radius:10px;padding:16px 20px;margin-bottom:18px">
+        <div style="font-size:13px;font-weight:700;margin-bottom:6px">🎓 Lulusan Program Studi Teknik Informatika</div>
+        <div style="font-size:12px;color:var(--text2);line-height:1.7">Berdasarkan pemetaan 15 CPL terhadap framework kompetensi internasional (ESCO v1.1) dan nasional (O*NET, SKKNI), lulusan prodi ini <strong style="color:var(--green)">paling kuat</strong> di domain <strong style="color:var(--cyan)">Software Engineering, Data & AI, dan Cybersecurity</strong>. Domain IoT dan Cloud Computing menunjukkan <strong style="color:var(--amber)">kesenjangan parsial</strong> yang perlu diperkuat melalui revisi CPL.</div>
+      </div>
+
+      <!-- Domain Tabs -->
+      <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap" id="domain-tabs"></div>
+      <div id="career-grid-container"></div>
+    </div>
+  </div>
+
+  <!-- Sankey -->
+  <div class="panel">
+    <div class="ph"><span class="pt"><span class="dot" style="background:var(--amber)"></span>Diagram Alur: CPL → Bidang → Pekerjaan Spesifik</span></div>
+    <div class="pb">
+      <div id="sankey-container"><svg id="sankey-svg" style="width:100%;height:380px"></svg></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     VIEW 3: PENYEMPURNAAN CPL
+══════════════════════════════════════ -->
+<div id="view-improve" class="view">
+  <div class="grid-2" style="margin-bottom:1.5rem">
+    <div class="panel">
+      <div class="ph"><span class="pt"><span class="dot" style="background:var(--amber)"></span>Kekuatan CPL — Strength Map</span></div>
+      <div class="pb ovf" id="strength-list"></div>
+    </div>
+    <div class="panel">
+      <div class="ph"><span class="pt"><span class="dot" style="background:var(--cyan)"></span>Distribusi Zona Kekuatan</span></div>
+      <div class="pb">
+        <svg id="zone-chart" style="width:100%;height:260px"></svg>
+        <div style="margin-top:16px">
+          <div class="highlight-box green" style="margin-bottom:8px">
+            <div style="font-size:11px;font-weight:700;color:var(--green);margin-bottom:3px">✅ ZONA KUAT (CRI-KG ≥ 0.80) — 7 CPL</div>
+            <div style="font-size:11px;color:var(--text2)">Kompetensi sudah terwakili baik di ontologi internasional. Tidak perlu diubah, cukup diperkuat implementasinya.</div>
+          </div>
+          <div class="highlight-box amber" style="margin-bottom:8px">
+            <div style="font-size:11px;font-weight:700;color:var(--amber);margin-bottom:3px">⚠️ ZONA SEDANG (0.65–0.79) — 5 CPL</div>
+            <div style="font-size:11px;color:var(--text2)">Perlu redaksi ulang untuk meningkatkan keterbacaan ontologis dan relevansi industri.</div>
+          </div>
+          <div class="highlight-box red">
+            <div style="font-size:11px;font-weight:700;color:var(--red);margin-bottom:3px">🔴 ZONA LEMAH (&lt; 0.65) — 3 CPL</div>
+            <div style="font-size:11px;color:var(--text2)">Kompetensi "emerging" yang belum terwakili di ontologi. Perlu penambahan terminologi industri terkini.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Improve Cards -->
+  <div class="panel">
+    <div class="ph"><span class="pt"><span class="dot" style="background:var(--purple)"></span>Saran Penyempurnaan — Perbandingan CPL Existing vs Revisi</span><span style="font-size:10px;color:var(--text3);font-family:'IBM Plex Mono',monospace">8 CPL dengan skor &lt; 0.80</span></div>
+    <div class="pb ovf" id="improve-cards"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     VIEW 4: GAP ANALYSIS
+══════════════════════════════════════ -->
+<div id="view-gap" class="view">
+  <div class="panel" style="margin-bottom:1.5rem">
+    <div class="ph"><span class="pt"><span class="dot" style="background:var(--red)"></span>Gap Analysis — Kompetensi Industri yang Belum Ada di CPL</span></div>
+    <div class="pb">
+      <div style="background:rgba(255,77,109,.05);border:1px solid rgba(255,77,109,.2);border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:12px;color:var(--text2);line-height:1.7">
+        <strong style="color:var(--red)">Metodologi:</strong> Gap diidentifikasi dengan membandingkan kompetensi yang paling sering muncul di ESCO + O*NET untuk domain Teknik Informatika terhadap 15 CPL existing. Kompetensi dengan frekuensi tinggi di framework tapi tidak memiliki pasangan CPL yang kuat (S_final &lt; 0.45) diklasifikasikan sebagai <em>gap</em>.
+      </div>
+      <div class="ovf" id="gap-table-container"></div>
+    </div>
+  </div>
+  <div class="grid-2">
+    <div class="panel">
+      <div class="ph"><span class="pt"><span class="dot" style="background:var(--cyan)"></span>Radar: CPL Coverage per Domain Industri</span></div>
+      <div class="pb"><svg id="radar-gap" style="width:100%;height:300px"></svg></div>
+    </div>
+    <div class="panel">
+      <div class="ph"><span class="pt"><span class="dot" style="background:var(--green)"></span>Rekomendasi CPL Baru (Tambahan)</span></div>
+      <div class="pb ovf" id="new-cpl-suggestions"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     VIEW 5: LAPORAN LENGKAP
+══════════════════════════════════════ -->
+<div id="view-report" class="view">
+  <div class="grid-2">
+    <div>
+      <div class="panel">
+        <div class="ph"><span class="pt"><span class="dot" style="background:var(--cyan)"></span>Executive Summary — IR-KG Analysis Report</span></div>
+        <div class="pb ovf" id="report-content"></div>
+      </div>
+    </div>
+    <div>
+      <div class="panel">
+        <div class="ph"><span class="pt"><span class="dot" style="background:var(--green)"></span>Peta Karir per CPL</span></div>
+        <div class="pb ovf" id="cpl-career-map"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<script>
+// ═══════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════
+
+const cplData = [
+  { id:'CPL-01', text:'Mampu menerapkan konsep dasar algoritma dan pemrograman terstruktur', cri:0.931, wscore:0.891, wconf:0.954, coverage:1.0, zone:'strong', domain:'Software Engineering' },
+  { id:'CPL-02', text:'Mampu merancang basis data relasional dan non-relasional', cri:0.887, wscore:0.845, wconf:0.921, coverage:1.0, zone:'strong', domain:'Data Engineering' },
+  { id:'CPL-03', text:'Mampu mengimplementasikan keamanan sistem informasi', cri:0.856, wscore:0.812, wconf:0.893, coverage:1.0, zone:'strong', domain:'Cybersecurity' },
+  { id:'CPL-04', text:'Mampu mengembangkan aplikasi berbasis web dan mobile', cri:0.834, wscore:0.795, wconf:0.874, coverage:1.0, zone:'strong', domain:'Software Engineering' },
+  { id:'CPL-05', text:'Mampu mengelola proyek perangkat lunak secara profesional', cri:0.812, wscore:0.771, wconf:0.854, coverage:1.0, zone:'strong', domain:'Project Management' },
+  { id:'CPL-06', text:'Mampu menganalisis dan merancang sistem jaringan komputer', cri:0.798, wscore:0.754, wconf:0.839, coverage:1.0, zone:'medium', domain:'Networking' },
+  { id:'CPL-07', text:'Mampu menerapkan kecerdasan buatan dalam pemecahan masalah', cri:0.776, wscore:0.731, wconf:0.815, coverage:1.0, zone:'medium', domain:'AI & ML' },
+  { id:'CPL-08', text:'Mampu melakukan analisis data dan visualisasi informasi', cri:0.754, wscore:0.712, wconf:0.797, coverage:0.8, zone:'medium', domain:'Data Analytics' },
+  { id:'CPL-09', text:'Mampu memahami etika profesi dan hukum teknologi informasi', cri:0.731, wscore:0.689, wconf:0.775, coverage:0.8, zone:'medium', domain:'IT Governance' },
+  { id:'CPL-10', text:'Mampu berkomunikasi dan bekerja dalam tim multidisiplin', cri:0.712, wscore:0.668, wconf:0.756, coverage:0.8, zone:'medium', domain:'Soft Skills' },
+  { id:'CPL-11', text:'Mampu melakukan pengujian dan jaminan kualitas perangkat lunak', cri:0.689, wscore:0.647, wconf:0.731, coverage:0.6, zone:'medium', domain:'QA Engineering' },
+  { id:'CPL-12', text:'Mampu mengembangkan sistem berbasis cloud dan komputasi terdistribusi', cri:0.665, wscore:0.624, wconf:0.708, coverage:0.6, zone:'weak', domain:'Cloud Computing' },
+  { id:'CPL-13', text:'Mampu merancang antarmuka pengguna yang usable dan accessible', cri:0.643, wscore:0.601, wconf:0.687, coverage:0.6, zone:'weak', domain:'UX/UI Design' },
+  { id:'CPL-14', text:'Mampu menerapkan metodologi pengembangan perangkat lunak agile', cri:0.621, wscore:0.578, wconf:0.665, coverage:0.4, zone:'weak', domain:'Agile/DevOps' },
+  { id:'CPL-15', text:'Mampu mengintegrasikan sistem IoT dengan platform digital', cri:0.612, wscore:0.568, wconf:0.652, coverage:0.4, zone:'weak', domain:'IoT' },
+];
+
+const careerData = {
+  'Software Engineering': [
+    { title:'Software Developer / Engineer', sub:'Membangun aplikasi web, mobile, dan enterprise', match:94, esco:'Software Developer', onet:'15-1252', sources:['ESCO','O*NET'], tier:'top' },
+    { title:'Backend Engineer', sub:'Arsitektur API, microservices, dan database integration', match:89, sources:['ESCO','O*NET'], tier:'top' },
+    { title:'Full Stack Developer', sub:'Pengembangan end-to-end frontend dan backend', match:86, sources:['ESCO','O*NET'], tier:'top' },
+    { title:'Mobile App Developer', sub:'iOS, Android, dan cross-platform development', match:81, sources:['ESCO','O*NET'], tier:'mid' },
+  ],
+  'Data & AI': [
+    { title:'Data Scientist', sub:'Pemodelan prediktif, ML, dan analisis statistik lanjut', match:88, sources:['ESCO','O*NET'], tier:'top' },
+    { title:'Machine Learning Engineer', sub:'Deployment model AI dan MLOps pipeline', match:83, sources:['ESCO','O*NET'], tier:'top' },
+    { title:'Data Analyst', sub:'Business intelligence, visualisasi, dan reporting', match:79, sources:['ESCO','O*NET','SKKNI'], tier:'mid' },
+    { title:'AI Research Engineer', sub:'Penelitian dan pengembangan algoritma AI baru', match:72, sources:['ESCO'], tier:'mid' },
+  ],
+  'Cybersecurity': [
+    { title:'Information Security Analyst', sub:'Monitoring, incident response, dan vulnerability assessment', match:87, sources:['ESCO','O*NET'], tier:'top' },
+    { title:'Penetration Tester', sub:'Ethical hacking dan security auditing', match:80, sources:['ESCO','O*NET'], tier:'mid' },
+    { title:'Security Architect', sub:'Perancangan sistem keamanan end-to-end', match:74, sources:['ESCO'], tier:'mid' },
+  ],
+  'Cloud & DevOps': [
+    { title:'Cloud Solutions Architect', sub:'AWS/GCP/Azure architecture dan migration', match:63, sources:['ESCO','O*NET'], tier:'low' },
+    { title:'DevOps Engineer', sub:'CI/CD pipeline, containerization, dan infrastruktur', match:59, sources:['ESCO','O*NET'], tier:'low' },
+    { title:'Site Reliability Engineer', sub:'Availability, scalability, dan performance engineering', match:54, sources:['ESCO'], tier:'low' },
+  ],
+  'Management & Consulting': [
+    { title:'IT Project Manager', sub:'Perencanaan, eksekusi, dan monitoring proyek TI', match:82, sources:['ESCO','O*NET','SKKNI'], tier:'top' },
+    { title:'IT Consultant', sub:'Strategi digital dan transformasi bisnis berbasis TI', match:76, sources:['ESCO','O*NET'], tier:'mid' },
+    { title:'Product Manager (Tech)', sub:'Roadmap produk digital dan koordinasi tim teknis', match:68, sources:['ESCO','O*NET'], tier:'mid' },
+  ],
+  'Research & Academia': [
+    { title:'Peneliti Informatika', sub:'Publikasi ilmiah di bidang IR, KG, dan sistem cerdas', match:77, sources:['ESCO'], tier:'mid' },
+    { title:'Dosen / Akademisi', sub:'Pengajaran dan riset di perguruan tinggi', match:71, sources:['ESCO','SKKNI'], tier:'mid' },
+  ],
+};
+
+const improveData = [
+  {
+    id:'CPL-06', cri:0.798, reason:'Terminologi "jaringan komputer" terlalu generik — tidak menangkap kompetensi spesifik yang dikenali ontologi ESCO dan O*NET.',
+    old:'Mampu menganalisis dan merancang sistem jaringan komputer',
+    new:'Mampu menganalisis, merancang, dan mengkonfigurasi infrastruktur jaringan komputer termasuk protokol komunikasi, keamanan jaringan, dan troubleshooting sistematis',
+    tags_remove:['jaringan komputer'], tags_add:['infrastruktur jaringan','protokol komunikasi','keamanan jaringan','troubleshooting sistematis'], delta:'+0.09 CRI-KG est.'
+  },
+  {
+    id:'CPL-07', cri:0.776, reason:'"Kecerdasan buatan" sebagai terminologi terlalu luas. ESCO dan O*NET merespons lebih baik terhadap sub-domain spesifik seperti machine learning dan natural language processing.',
+    old:'Mampu menerapkan kecerdasan buatan dalam pemecahan masalah',
+    new:'Mampu merancang dan mengimplementasikan solusi berbasis machine learning, deep learning, dan pemrosesan bahasa alami untuk pemecahan masalah komputasional',
+    tags_remove:['kecerdasan buatan','pemecahan masalah'], tags_add:['machine learning','deep learning','pemrosesan bahasa alami','komputasional'], delta:'+0.11 CRI-KG est.'
+  },
+  {
+    id:'CPL-08', cri:0.754, reason:'Kombinasi "analisis data" dan "visualisasi" melemahkan sinyal TF-IDF karena mencakup dua domain yang berbeda. Lebih baik dipisah atau diperkuat dengan terminologi spesifik.',
+    old:'Mampu melakukan analisis data dan visualisasi informasi',
+    new:'Mampu melakukan eksplorasi data, analisis statistik, dan membangun visualisasi interaktif menggunakan tools analytics modern untuk mendukung pengambilan keputusan berbasis data',
+    tags_remove:['melakukan analisis data'], tags_add:['eksplorasi data','analisis statistik','visualisasi interaktif','tools analytics','pengambilan keputusan berbasis data'], delta:'+0.08 CRI-KG est.'
+  },
+  {
+    id:'CPL-09', cri:0.731, reason:'"Etika profesi dan hukum TI" adalah domain lintas disiplin yang terminologinya lemah di ontologi teknis ESCO/O*NET. Perlu ditambahkan konteks implementasi teknis.',
+    old:'Mampu memahami etika profesi dan hukum teknologi informasi',
+    new:'Mampu menerapkan prinsip etika profesi, regulasi perlindungan data (GDPR/UU PDP), dan kepatuhan hukum teknologi informasi dalam praktik pengembangan perangkat lunak yang bertanggung jawab',
+    tags_remove:['memahami etika'], tags_add:['etika profesi','regulasi data','GDPR','UU PDP','kepatuhan hukum','responsible development'], delta:'+0.07 CRI-KG est.'
+  },
+  {
+    id:'CPL-11', cri:0.689, reason:'"Pengujian dan jaminan kualitas" terlalu umum. Spesifikasi metode pengujian akan meningkatkan S_final secara signifikan.',
+    old:'Mampu melakukan pengujian dan jaminan kualitas perangkat lunak',
+    new:'Mampu merancang dan melaksanakan strategi pengujian perangkat lunak mencakup unit testing, integration testing, performance testing, dan implementasi continuous integration untuk menjamin kualitas produk',
+    tags_remove:['pengujian','jaminan kualitas'], tags_add:['unit testing','integration testing','performance testing','continuous integration','quality assurance'], delta:'+0.13 CRI-KG est.'
+  },
+  {
+    id:'CPL-12', cri:0.665, reason:'Cloud computing adalah domain yang berkembang pesat namun terminologinya belum sepenuhnya terwakili di ESCO v1.1. Perlu penambahan vendor-neutral terminology.',
+    old:'Mampu mengembangkan sistem berbasis cloud dan komputasi terdistribusi',
+    new:'Mampu merancang, mendeploy, dan mengelola aplikasi cloud-native menggunakan arsitektur microservices, containerization (Docker/Kubernetes), dan layanan komputasi terdistribusi pada platform cloud publik maupun hybrid',
+    tags_remove:['sistem berbasis cloud'], tags_add:['cloud-native','microservices','containerization','Docker','Kubernetes','hybrid cloud'], delta:'+0.15 CRI-KG est.'
+  },
+  {
+    id:'CPL-13', cri:0.643, reason:'"Antarmuka pengguna yang usable" menggunakan terminologi yang ambigu secara ontologis. Istilah UX/UI yang lebih teknis akan dikenali lebih baik.',
+    old:'Mampu merancang antarmuka pengguna yang usable dan accessible',
+    new:'Mampu melakukan riset pengguna, merancang prototipe antarmuka berbasis prinsip human-centered design, menerapkan standar aksesibilitas WCAG, dan mengevaluasi usability melalui pengujian dengan pengguna nyata',
+    tags_remove:['antarmuka pengguna','usable'], tags_add:['riset pengguna','human-centered design','aksesibilitas WCAG','usability testing','prototyping'], delta:'+0.14 CRI-KG est.'
+  },
+  {
+    id:'CPL-14', cri:0.621, reason:'Metodologi agile sudah dikenal luas di industri namun representasinya di SKKNI masih lemah. Perlu ditambahkan terminologi DevOps dan delivery practices.',
+    old:'Mampu menerapkan metodologi pengembangan perangkat lunak agile',
+    new:'Mampu memimpin dan berpartisipasi dalam tim pengembangan perangkat lunak menggunakan kerangka kerja agile (Scrum/Kanban), praktik DevOps, dan continuous delivery untuk menghasilkan produk perangkat lunak secara iteratif dan kolaboratif',
+    tags_remove:['metodologi agile'], tags_add:['Scrum','Kanban','DevOps','continuous delivery','iteratif','kolaboratif'], delta:'+0.12 CRI-KG est.'
+  },
+];
+
+const gapData = [
+  { skill:'Generative AI & Prompt Engineering', domain:'AI & ML', priority:'high', freq_esco:892, freq_onet:745, nearest_cpl:'CPL-07', gap_score:0.71, action:'Tambah CPL atau perluas CPL-07' },
+  { skill:'Cybersecurity Incident Response', domain:'Cybersecurity', priority:'high', freq_esco:834, freq_onet:698, nearest_cpl:'CPL-03', gap_score:0.65, action:'Perluas CPL-03 dengan spesifikasi response' },
+  { skill:'MLOps & Model Deployment', domain:'AI & ML', priority:'high', freq_esco:756, freq_onet:621, nearest_cpl:'CPL-07', gap_score:0.58, action:'Tambah CPL baru: ML Engineering' },
+  { skill:'Blockchain & Distributed Ledger', domain:'Emerging Tech', priority:'med', freq_esco:543, freq_onet:412, nearest_cpl:'CPL-12', gap_score:0.43, action:'Tambah dalam CPL-12 atau CPL baru' },
+  { skill:'Quantum Computing Fundamentals', domain:'Emerging Tech', priority:'low', freq_esco:287, freq_onet:198, nearest_cpl:'—', gap_score:0.22, action:'CPL baru opsional jangka panjang' },
+  { skill:'Edge Computing & Fog Architecture', domain:'IoT', priority:'med', freq_esco:412, freq_onet:334, nearest_cpl:'CPL-15', gap_score:0.39, action:'Perluas CPL-15 dengan edge/fog terminology' },
+  { skill:'Digital Forensics', domain:'Cybersecurity', priority:'med', freq_esco:489, freq_onet:401, nearest_cpl:'CPL-03', gap_score:0.47, action:'Tambah CPL baru: Digital Forensics' },
+  { skill:'API Design & Microservices Architecture', domain:'Software Eng.', priority:'high', freq_esco:801, freq_onet:689, nearest_cpl:'CPL-04', gap_score:0.62, action:'Perluas CPL-04 atau tambah CPL arsitektur' },
+];
+
+const newCPLSuggestions = [
+  { id:'CPL-16*', text:'Mampu merancang, melatih, dan mendeploy model generative AI dan large language model untuk aplikasi cerdas berbasis domain spesifik', domain:'GenAI', priority:'HIGH', estCRI:0.82 },
+  { id:'CPL-17*', text:'Mampu mengimplementasikan pipeline MLOps mencakup versioning model, monitoring, dan deployment otomatis pada infrastruktur produksi', domain:'MLOps', priority:'HIGH', estCRI:0.79 },
+  { id:'CPL-18*', text:'Mampu merancang API RESTful dan arsitektur microservices yang scalable, terdokumentasi, dan mengikuti standar industri', domain:'API/Architecture', priority:'HIGH', estCRI:0.84 },
+  { id:'CPL-19*', text:'Mampu melakukan investigasi forensik digital dan respons insiden keamanan siber secara sistematis dan terdokumentasi', domain:'Digital Forensics', priority:'MED', estCRI:0.75 },
+];
+
+// ═══════════════════════════════════════
+// HELPER
+// ═══════════════════════════════════════
+function getColor(cri) {
+  if (cri >= 0.85) return 'var(--green)';
+  if (cri >= 0.75) return 'var(--cyan)';
+  if (cri >= 0.65) return 'var(--amber)';
+  return 'var(--red)';
+}
+function getZoneBg(zone) {
+  if (zone==='strong') return 'rgba(0,214,143,.12)';
+  if (zone==='medium') return 'rgba(0,229,255,.08)';
+  return 'rgba(255,77,109,.1)';
+}
+function getZoneColor(zone) {
+  if (zone==='strong') return 'var(--green)';
+  if (zone==='medium') return 'var(--cyan)';
+  return 'var(--red)';
+}
+function getZoneLabel(zone) {
+  if (zone==='strong') return '✅ KUAT';
+  if (zone==='medium') return '⚡ SEDANG';
+  return '🔴 LEMAH';
+}
+
+// ═══════════════════════════════════════
+// RENDER CPL LIST
+// ═══════════════════════════════════════
+let selectedCPL = 'CPL-01';
+let filteredCPL = [...cplData];
+
+function renderCPLList(data) {
+  document.getElementById('cpl-list').innerHTML = data.map(c => `
+    <div class="cpl-item ${selectedCPL===c.id?'selected':''}" onclick="selectCPL('${c.id}')">
+      <div class="cpl-row1">
+        <span class="cpl-id">${c.id}</span>
+        <span class="cpl-badge" style="background:${getZoneBg(c.zone)};color:${getZoneColor(c.zone)}">${getZoneLabel(c.zone)}</span>
+      </div>
+      <div class="cpl-text">${c.text}</div>
+      <div class="mini-bar-track">
+        <div class="mini-bar-fill" style="width:${c.cri*100}%;background:${getColor(c.cri)}"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:3px">
+        <span style="font-size:9px;color:var(--text3);font-family:'IBM Plex Mono',monospace">${c.domain}</span>
+        <span style="font-size:10px;font-family:'IBM Plex Mono',monospace;color:${getColor(c.cri)}">${c.cri.toFixed(3)}</span>
+      </div>
+    </div>`).join('');
+}
+
+function filterCPL(q) {
+  filteredCPL = q ? cplData.filter(c => c.text.toLowerCase().includes(q.toLowerCase())||c.id.includes(q.toUpperCase())) : [...cplData];
+  renderCPLList(filteredCPL);
+}
+
+function selectCPL(id) {
+  selectedCPL = id;
+  renderCPLList(filteredCPL);
+  renderDashDetail(id);
+  document.getElementById('dash-cpl-lbl').textContent = id;
+}
+
+// ═══════════════════════════════════════
+// DASHBOARD DETAIL
+// ═══════════════════════════════════════
+function renderDashDetail(id) {
+  const c = cplData.find(x=>x.id===id);
+  const jobs = Object.values(careerData).flat().filter(j=>j.match>=65).slice(0,4);
+  const imp = improveData.find(x=>x.id===id);
+
+  document.getElementById('dash-detail').innerHTML = `
+    <div style="background:var(--bg3);border-radius:10px;padding:14px 16px;margin-bottom:14px;border:1px solid var(--border2)">
+      <div style="font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--text3);margin-bottom:5px">${c.id} · ${c.domain}</div>
+      <div style="font-size:13px;font-weight:700;margin-bottom:10px;line-height:1.4">${c.text}</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
+        ${[['CRI-KG',c.cri.toFixed(3),getColor(c.cri)],['W_score',c.wscore.toFixed(3),'var(--cyan)'],['W_conf',c.wconf.toFixed(3),'var(--purple)'],['Coverage',(c.coverage*100).toFixed(0)+'%','var(--green)']].map(([l,v,col])=>`
+          <div style="text-align:center">
+            <div style="font-size:9px;color:var(--text3);font-family:'IBM Plex Mono',monospace;margin-bottom:2px">${l}</div>
+            <div style="font-size:20px;font-weight:800;color:${col};font-family:'IBM Plex Mono',monospace">${v}</div>
+          </div>`).join('')}
+      </div>
+    </div>
+
+    <div style="margin-bottom:12px">
+      <div style="font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--text3);margin-bottom:8px;letter-spacing:1px">🎓 KARIR YANG COCOK UNTUK LULUSAN DENGAN CPL INI</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        ${Object.entries(careerData).flatMap(([domain,jobs])=>jobs.map(j=>({...j,domain}))).filter(j=>j.match>=70).slice(0,5).map(j=>`
+          <div style="display:flex;align-items:center;gap:10px;background:var(--bg3);border-radius:7px;padding:8px 12px;border:1px solid var(--border)">
+            <div style="flex:1">
+              <div style="font-size:12px;font-weight:600">${j.title}</div>
+              <div style="font-size:10px;color:var(--text2)">${j.domain}</div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-size:14px;font-weight:800;color:${j.match>=85?'var(--green)':j.match>=70?'var(--cyan)':'var(--amber)'};font-family:'IBM Plex Mono',monospace">${j.match}%</div>
+              <div style="font-size:9px;color:var(--text3)">match</div>
+            </div>
+          </div>`).join('')}
+      </div>
+    </div>
+
+    ${imp ? `
+    <div style="background:rgba(255,176,32,.05);border:1px solid rgba(255,176,32,.2);border-radius:8px;padding:12px 14px">
+      <div style="font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--amber);margin-bottom:5px">⚠️ SARAN PENYEMPURNAAN CPL</div>
+      <div style="font-size:11px;color:var(--text2);line-height:1.6">${imp.reason}</div>
+      <div style="margin-top:6px;font-size:10px;color:var(--green);font-family:'IBM Plex Mono',monospace">${imp.delta}</div>
+    </div>` : `
+    <div style="background:rgba(0,214,143,.05);border:1px solid rgba(0,214,143,.2);border-radius:8px;padding:12px 14px">
+      <div style="font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--green);margin-bottom:5px">✅ CPL SUDAH OPTIMAL</div>
+      <div style="font-size:11px;color:var(--text2)">Skor CRI-KG ≥ 0.80. Terminologi sudah dikenali baik oleh ontologi ESCO dan O*NET. Tidak diperlukan revisi substansial.</div>
+    </div>`}
+  `;
+}
+
+// ═══════════════════════════════════════
+// CRI BARS
+// ═══════════════════════════════════════
+function renderCRIBars() {
+  document.getElementById('cri-bars').innerHTML = `<div style="display:flex;flex-direction:column;gap:8px">${cplData.map(c=>`
+    <div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+        <span style="font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--text2)">${c.id} <span style="color:var(--text3)">${c.domain}</span></span>
+        <span style="font-size:11px;font-weight:700;font-family:'IBM Plex Mono',monospace;color:${getColor(c.cri)}">${c.cri.toFixed(3)}</span>
+      </div>
+      <div class="strength-track"><div class="strength-fill" id="cb-${c.id}" style="width:0%;background:linear-gradient(90deg,${getColor(c.cri)},${getColor(c.cri)}88)"></div></div>
+    </div>`).join('')}</div>`;
+  setTimeout(()=>cplData.forEach(c=>{const b=document.getElementById(`cb-${c.id}`);if(b)b.style.width=c.cri*100+'%';}),100);
+}
+
+// ═══════════════════════════════════════
+// CAREER VIEW
+// ═══════════════════════════════════════
+let activeDomain = 'Software Engineering';
+
+function renderCareer() {
+  const domains = Object.keys(careerData);
+  document.getElementById('domain-tabs').innerHTML = domains.map(d=>`
+    <button onclick="setDomain('${d}')" style="background:${activeDomain===d?'rgba(0,229,255,.1)':'var(--bg3)'};border:1px solid ${activeDomain===d?'var(--cyan)':'var(--border2)'};color:${activeDomain===d?'var(--cyan)':'var(--text2)'};padding:6px 14px;border-radius:20px;cursor:pointer;font-size:12px;font-weight:600;font-family:'Plus Jakarta Sans',sans-serif;transition:all .2s">${d}</button>`).join('');
+
+  const jobs = careerData[activeDomain];
+  document.getElementById('career-grid-container').innerHTML = `
+    <div class="career-grid">${jobs.map(j=>`
+      <div class="career-card ${j.tier}">
+        <div class="career-domain" style="color:${j.tier==='top'?'var(--green)':j.tier==='mid'?'var(--cyan)':'var(--amber)'}">${activeDomain}</div>
+        <div class="career-title">${j.title}</div>
+        <div class="career-sub">${j.sub}</div>
+        <div class="match-row">
+          <span class="match-pct" style="color:${j.match>=85?'var(--green)':j.match>=70?'var(--cyan)':'var(--amber)'}">${j.match}%</span>
+          <div class="match-track"><div class="match-fill" style="width:${j.match}%;background:${j.match>=85?'var(--green)':j.match>=70?'var(--cyan)':'var(--amber)'}"></div></div>
+        </div>
+        <div class="career-sources">${j.sources.map(s=>`<span class="src-tag" style="background:${s==='ESCO'?'rgba(0,229,255,.12)':s==='O*NET'?'rgba(255,176,32,.12)':'rgba(0,214,143,.12)'};color:${s==='ESCO'?'var(--esco)':s==='O*NET'?'var(--onet)':'var(--skkni)'};border:1px solid ${s==='ESCO'?'rgba(0,229,255,.3)':s==='O*NET'?'rgba(255,176,32,.3)':'rgba(0,214,143,.3)'}">${s}</span>`).join('')}</div>
+      </div>`).join('')}</div>`;
+}
+
+function setDomain(d) { activeDomain=d; renderCareer(); }
+
+// ═══════════════════════════════════════
+// SANKEY (D3)
+// ═══════════════════════════════════════
+function renderSankey() {
+  const svg = d3.select('#sankey-svg');
+  svg.selectAll('*').remove();
+  const W = document.getElementById('sankey-svg').clientWidth || 900, H = 380;
+  const g = svg.append('g').attr('transform','translate(20,20)');
+
+  const col1x=0, col2x=300, col3x=620;
+  const col1 = ['CPL-01','CPL-02','CPL-03','CPL-04','CPL-05','CPL-06','CPL-07','CPL-08','CPL-09','CPL-10','CPL-11','CPL-12','CPL-13','CPL-14','CPL-15'];
+  const col2 = ['Software Eng.','Data & AI','Cybersecurity','Cloud/DevOps','Management','Research'];
+  const col3 = ['Software Dev','Data Scientist','Sec. Analyst','ML Engineer','IT Consultant','DevOps Eng.','Project Mgr','Researcher'];
+
+  const h1 = (H-40)/col1.length, h2 = (H-40)/col2.length, h3 = (H-40)/col3.length;
+  const flows = [
+    ['CPL-01','Software Eng.',94],['CPL-02','Data & AI',78],['CPL-03','Cybersecurity',87],
+    ['CPL-04','Software Eng.',84],['CPL-05','Management',82],['CPL-06','Cloud/DevOps',63],
+    ['CPL-07','Data & AI',88],['CPL-08','Data & AI',79],['CPL-09','Management',71],
+    ['CPL-10','Management',68],['CPL-11','Software Eng.',72],['CPL-12','Cloud/DevOps',59],
+    ['CPL-13','Software Eng.',65],['CPL-14','Management',61],['CPL-15','Cloud/DevOps',54],
+    ['Software Eng.','Software Dev',94],['Software Eng.','ML Engineer',72],
+    ['Data & AI','Data Scientist',88],['Data & AI','ML Engineer',83],['Data & AI','Researcher',77],
+    ['Cybersecurity','Sec. Analyst',87],['Cloud/DevOps','DevOps Eng.',70],
+    ['Management','IT Consultant',82],['Management','Project Mgr',82],['Research','Researcher',77],
+  ];
+
+  const nodePos = {};
+  col1.forEach((n,i)=>nodePos[n]={x:col1x,y:i*h1+h1/2});
+  col2.forEach((n,i)=>nodePos[n]={x:col2x,y:i*h2+h2/2});
+  col3.forEach((n,i)=>nodePos[n]={x:col3x,y:i*h3+h3/2});
+
+  const domainColors = {'Software Eng.':'var(--cyan)','Data & AI':'var(--purple)','Cybersecurity':'var(--red)','Cloud/DevOps':'var(--amber)','Management':'var(--green)','Research':'var(--pink)'};
+
+  flows.forEach(([src,tgt,val])=>{
+    if (!nodePos[src]||!nodePos[tgt]) return;
+    const {x:x1,y:y1}=nodePos[src], {x:x2,y:y2}=nodePos[tgt];
+    const mx=(x1+x2)/2;
+    const isD2 = col2.includes(src);
+    const col = isD2 ? (domainColors[src]||'var(--cyan)') : 'rgba(139,92,246,.25)';
+    g.append('path').attr('d',`M${x1+8},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`)
+      .attr('fill','none').attr('stroke',col).attr('stroke-width',Math.max(1,val/25)).attr('stroke-opacity',.5);
+  });
+
+  // Nodes col1
+  col1.forEach((n,i)=>{
+    const c = cplData.find(x=>x.id===n);
+    g.append('rect').attr('x',col1x).attr('y',i*h1+1).attr('width',80).attr('height',h1-3).attr('rx',3).attr('fill','rgba(167,139,250,.08)').attr('stroke','var(--cpl)').attr('stroke-width',.5);
+    g.append('text').attr('x',col1x+40).attr('y',i*h1+h1/2).attr('text-anchor','middle').attr('dominant-baseline','middle').attr('font-size',8).attr('font-family','IBM Plex Mono').attr('fill','var(--cpl)').text(n);
+  });
+  // Nodes col2
+  col2.forEach((n,i)=>{
+    const col=domainColors[n]||'var(--cyan)';
+    g.append('rect').attr('x',col2x).attr('y',i*h2+1).attr('width',100).attr('height',h2-3).attr('rx',3).attr('fill',`${col}11`).attr('stroke',col).attr('stroke-width',.5);
+    g.append('text').attr('x',col2x+50).attr('y',i*h2+h2/2).attr('text-anchor','middle').attr('dominant-baseline','middle').attr('font-size',9).attr('font-family','IBM Plex Mono').attr('fill',col).text(n);
+  });
+  // Nodes col3
+  col3.forEach((n,i)=>{
+    g.append('rect').attr('x',col3x).attr('y',i*h3+1).attr('width',100).attr('height',h3-3).attr('rx',3).attr('fill','rgba(0,230,255,.06)').attr('stroke','rgba(0,230,255,.3)').attr('stroke-width',.5);
+    g.append('text').attr('x',col3x+50).attr('y',i*h3+h3/2).attr('text-anchor','middle').attr('dominant-baseline','middle').attr('font-size',9).attr('font-family','IBM Plex Mono').attr('fill','var(--text2)').text(n);
+  });
+  // Labels
+  ['CPL (15 Butir)','Domain Industri','Jabatan Spesifik'].forEach((l,i)=>{
+    g.append('text').attr('x',[col1x+40,col2x+50,col3x+50][i]).attr('y',-8).attr('text-anchor','middle').attr('font-size',10).attr('font-family','IBM Plex Mono').attr('fill','var(--text3)').attr('letter-spacing',1).text(l);
+  });
+}
+
+// ═══════════════════════════════════════
+// IMPROVE VIEW
+// ═══════════════════════════════════════
+function renderStrengthList() {
+  document.getElementById('strength-list').innerHTML = `<div class="cpl-strength-list">${cplData.map(c=>`
+    <div class="strength-item">
+      <div class="strength-header">
+        <span class="strength-id">${c.id} <span style="color:var(--text3)">${c.domain}</span></span>
+        <span class="strength-score" style="color:${getColor(c.cri)}">${c.cri.toFixed(3)}<span class="zone-badge" style="background:${getZoneBg(c.zone)};color:${getZoneColor(c.zone)}">${getZoneLabel(c.zone)}</span></span>
+      </div>
+      <div class="strength-track"><div class="strength-fill" id="sf-${c.id}" style="width:0%;background:linear-gradient(90deg,${getColor(c.cri)},${getColor(c.cri)}55)"></div></div>
+      <div class="strength-label">${c.text.substring(0,60)}...</div>
+    </div>`).join('')}</div>`;
+  setTimeout(()=>cplData.forEach(c=>{const b=document.getElementById(`sf-${c.id}`);if(b)b.style.width=c.cri*100+'%';}),100);
+}
+
+function renderZoneChart() {
+  const svg = d3.select('#zone-chart');
+  svg.selectAll('*').remove();
+  const W = document.getElementById('zone-chart').clientWidth||500, H=260;
+  const g = svg.append('g').attr('transform',`translate(${W/2},${H/2})`);
+  const r = Math.min(W,H)/2-30;
+  const zones = [{label:'Kuat\n(≥0.80)',count:7,col:'var(--green)'},{label:'Sedang\n(0.65–0.79)',count:5,col:'var(--cyan)'},{label:'Lemah\n(<0.65)',count:3,col:'var(--red)'}];
+  const total=15;
+  let angle=-Math.PI/2;
+  zones.forEach(z=>{
+    const sweep=(z.count/total)*Math.PI*2;
+    const x1=Math.cos(angle)*r, y1=Math.sin(angle)*r;
+    const x2=Math.cos(angle+sweep)*r, y2=Math.sin(angle+sweep)*r;
+    const large=sweep>Math.PI?1:0;
+    g.append('path').attr('d',`M0,0 L${x1},${y1} A${r},${r} 0 ${large} 1 ${x2},${y2} Z`).attr('fill',z.col).attr('opacity',.8);
+    const ma=angle+sweep/2;
+    const lx=Math.cos(ma)*(r+20), ly=Math.sin(ma)*(r+20);
+    z.label.split('\n').forEach((line,li)=>{
+      g.append('text').attr('x',lx).attr('y',ly+li*13-6).attr('text-anchor','middle').attr('font-size',10).attr('font-family','IBM Plex Mono').attr('fill',z.col).text(line);
+    });
+    g.append('text').attr('x',Math.cos(ma)*r*0.65).attr('y',Math.sin(ma)*r*0.65+5).attr('text-anchor','middle').attr('font-size',16).attr('font-weight','800').attr('font-family','IBM Plex Mono').attr('fill','#0d1424').text(z.count);
+    angle+=sweep;
+  });
+}
+
+function renderImproveCards() {
+  document.getElementById('improve-cards').innerHTML = improveData.map(imp=>`
+    <div class="improve-card">
+      <div class="improve-head" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
+        <div style="display:flex;align-items:center;gap:12px">
+          <span style="font-size:11px;font-family:'IBM Plex Mono',monospace;color:var(--cpl);font-weight:700">${imp.id}</span>
+          <span style="font-size:11px;color:var(--text2)">CRI-KG saat ini: </span>
+          <span style="font-size:13px;font-weight:800;font-family:'IBM Plex Mono',monospace;color:${getColor(imp.cri)}">${imp.cri.toFixed(3)}</span>
+          <span style="font-size:11px;color:var(--green);font-family:'IBM Plex Mono',monospace">${imp.delta}</span>
+        </div>
+        <span style="color:var(--text3);font-size:16px">▾</span>
+      </div>
+      <div class="improve-body">
+        <div style="font-size:11px;color:var(--amber);background:rgba(255,176,32,.06);border-radius:6px;padding:8px 12px;margin-bottom:12px;border-left:3px solid var(--amber)">💡 ${imp.reason}</div>
+        <div class="compare-grid">
+          <div class="compare-box" style="border-left:3px solid var(--red)">
+            <div class="compare-label" style="color:var(--red)">❌ CPL EXISTING</div>
+            <div class="compare-text">${imp.old}</div>
+            <div style="margin-top:8px">${imp.tags_remove.map(t=>`<span class="diff-tag diff-remove">${t}</span>`).join('')}</div>
+          </div>
+          <div class="compare-box" style="border-left:3px solid var(--green)">
+            <div class="compare-label" style="color:var(--green)">✅ CPL REVISI</div>
+            <div class="compare-text">${imp.new}</div>
+            <div style="margin-top:8px">${imp.tags_add.map(t=>`<span class="diff-tag diff-add">${t}</span>`).join('')}</div>
+          </div>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════
+// GAP ANALYSIS
+// ═══════════════════════════════════════
+function renderGapTable() {
+  document.getElementById('gap-table-container').innerHTML = `
+    <table class="gap-table">
+      <thead><tr>
+        <th>Kompetensi Industri</th><th>Domain</th><th>Frekuensi ESCO</th><th>Frekuensi O*NET</th><th>CPL Terdekat</th><th>Gap Score</th><th>Prioritas</th><th>Rekomendasi</th>
+      </tr></thead>
+      <tbody>${gapData.map(g=>`<tr>
+        <td style="font-weight:600;font-size:12px">${g.skill}</td>
+        <td><span class="tag" style="background:rgba(59,130,246,.1);color:var(--blue);border:1px solid rgba(59,130,246,.2)">${g.domain}</span></td>
+        <td style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text2)">${g.freq_esco.toLocaleString()}</td>
+        <td style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text2)">${g.freq_onet.toLocaleString()}</td>
+        <td style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--cpl)">${g.nearest_cpl}</td>
+        <td>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:${g.gap_score>=0.6?'var(--red)':g.gap_score>=0.4?'var(--amber)':'var(--text2)'}">${g.gap_score.toFixed(2)}</span>
+            <div style="width:50px;height:4px;background:var(--bg4);border-radius:2px;overflow:hidden"><div style="height:100%;width:${g.gap_score*100}%;background:${g.gap_score>=0.6?'var(--red)':g.gap_score>=0.4?'var(--amber)':'var(--cyan)'}"></div></div>
+          </div>
+        </td>
+        <td><span class="priority-pill ${g.priority==='high'?'p-high':g.priority==='med'?'p-med':'p-low'}">${g.priority.toUpperCase()}</span></td>
+        <td style="font-size:11px;color:var(--text2)">${g.action}</td>
+      </tr>`).join('')}</tbody>
+    </table>`;
+}
+
+function renderRadarGap() {
+  const svg = document.getElementById('radar-gap');
+  const W = svg.clientWidth||500, H=300, cx=W/2, cy=H/2, r=Math.min(W,H)/2-50;
+  const domains = ['Software Eng.','Data & AI','Cybersecurity','Cloud/DevOps','Management','IoT'];
+  const existing = [0.87,0.79,0.82,0.62,0.78,0.61];
+  const target =   [0.92,0.88,0.87,0.82,0.82,0.80];
+  const n=domains.length;
+  const ang = i=>(Math.PI*2*i/n)-Math.PI/2;
+  const px=(i,v)=>cx+v*r*Math.cos(ang(i));
+  const py=(i,v)=>cy+v*r*Math.sin(ang(i));
+
+  let html='';
+  [.25,.5,.75,1].forEach(p=>{
+    const pts=domains.map((_,i)=>`${cx+p*r*Math.cos(ang(i))},${cy+p*r*Math.sin(ang(i))}`).join(' ');
+    html+=`<polygon points="${pts}" fill="none" stroke="rgba(255,255,255,.05)" stroke-width="1"/>`;
+  });
+  domains.forEach((_,i)=>{
+    html+=`<line x1="${cx}" y1="${cy}" x2="${cx+r*Math.cos(ang(i))}" y2="${cy+r*Math.sin(ang(i))}" stroke="rgba(255,255,255,.07)" stroke-width="1"/>`;
+    const lx=cx+(r+22)*Math.cos(ang(i)), ly=cy+(r+22)*Math.sin(ang(i));
+    html+=`<text x="${lx}" y="${ly}" text-anchor="middle" dominant-baseline="middle" font-size="9" font-family="IBM Plex Mono" fill="#8899bb">${domains[i]}</text>`;
+  });
+
+  const tPts=target.map((_,i)=>`${px(i,target[i])},${py(i,target[i])}`).join(' ');
+  const ePts=existing.map((_,i)=>`${px(i,existing[i])},${py(i,existing[i])}`).join(' ');
+  html+=`<polygon points="${tPts}" fill="rgba(255,77,109,.1)" stroke="var(--red)" stroke-width="1.5" stroke-dasharray="5,3"/>`;
+  html+=`<polygon points="${ePts}" fill="rgba(0,229,255,.1)" stroke="var(--cyan)" stroke-width="2"/>`;
+
+  html+=`<line x1="20" y1="15" x2="40" y2="15" stroke="var(--cyan)" stroke-width="2"/>
+         <text x="45" y="15" dominant-baseline="middle" font-size="9" font-family="IBM Plex Mono" fill="var(--cyan)">CPL Existing</text>
+         <line x1="20" y1="30" x2="40" y2="30" stroke="var(--red)" stroke-width="1.5" stroke-dasharray="4,2"/>
+         <text x="45" y="30" dominant-baseline="middle" font-size="9" font-family="IBM Plex Mono" fill="var(--red)">Target Industri</text>`;
+  svg.innerHTML=html;
+}
+
+function renderNewCPL() {
+  document.getElementById('new-cpl-suggestions').innerHTML = newCPLSuggestions.map(c=>`
+    <div style="background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:12px;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <span style="font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--cyan);font-weight:700">${c.id}</span>
+        <span class="priority-pill ${c.priority==='HIGH'?'p-high':'p-med'}">${c.priority}</span>
+      </div>
+      <div style="font-size:12px;line-height:1.5;margin-bottom:8px">${c.text}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span class="tag" style="background:rgba(59,130,246,.1);color:var(--blue);border:1px solid rgba(59,130,246,.2)">${c.domain}</span>
+        <span style="font-size:11px;font-family:'IBM Plex Mono',monospace;color:var(--green)">Est. CRI-KG: ${c.estCRI.toFixed(2)}</span>
+      </div>
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════
+// REPORT
+// ═══════════════════════════════════════
+function renderReport() {
+  document.getElementById('report-content').innerHTML = `
+    <div class="summary-section">
+      <h3>1. Ringkasan Eksekutif</h3>
+      <p class="summary-p">Analisis pemetaan kompetensi menggunakan model IR-KG terhadap 15 CPL Program Studi Teknik Informatika menunjukkan rata-rata skor CRI-KG sebesar <strong style="color:var(--cyan)">0.774</strong>, dengan rentang P10–P90 dari 0.612 hingga 0.931. Hasil ini mengindikasikan bahwa mayoritas CPL sudah terwakili dengan baik dalam framework kompetensi internasional, namun terdapat kesenjangan signifikan pada domain emerging technology.</p>
+      <div class="highlight-box green">
+        <div style="font-weight:700;font-size:12px;margin-bottom:4px">✅ Kekuatan Utama Program Studi</div>
+        <div style="font-size:11px;color:var(--text2)">CPL-01 hingga CPL-05 (Software Engineering, Database, Cybersecurity) memiliki skor tertinggi (0.81–0.93), menunjukkan keselarasan yang kuat dengan standar industri global.</div>
+      </div>
+    </div>
+    <div class="summary-section">
+      <h3>2. Temuan Utama</h3>
+      ${[
+        ['Lulusan paling kompetitif di bidang Software Development dan Data Science','CRI-KG CPL-01,02,07 berada di atas 0.85, menunjukkan terminologi yang dikenali baik oleh ESCO dan O*NET.'],
+        ['Domain Cloud & IoT memerlukan penguatan segera','CPL-12 dan CPL-15 memiliki skor terendah (0.612–0.665) karena terminologi emerging yang belum matang di ontologi.'],
+        ['8 dari 15 CPL memerlukan redaksi ulang','Revisi terminologi dengan kata kunci yang lebih spesifik berpotensi meningkatkan rata-rata CRI-KG sebesar +0.08–0.15.'],
+        ['6 gap kompetensi industri teridentifikasi','GenAI, MLOps, API Architecture, Digital Forensics, Edge Computing, dan Blockchain belum terwakili dalam CPL existing.'],
+      ].map(([t,d],i)=>`<div class="finding-row"><div class="finding-num">${i+1}</div><div class="finding-text"><strong>${t}.</strong> ${d}</div></div>`).join('')}
+    </div>
+    <div class="summary-section">
+      <h3>3. Rekomendasi Strategis</h3>
+      <div class="highlight-box amber">
+        <div style="font-weight:700;font-size:12px;margin-bottom:6px">Jangka Pendek (1 Siklus Kurikulum)</div>
+        <div style="font-size:11px;color:var(--text2);line-height:1.8">Revisi redaksi 8 CPL (CPL-06 s.d. CPL-14) dengan menambahkan terminologi spesifik yang dikenali ontologi ESCO dan O*NET. Estimasi peningkatan rata-rata CRI-KG: <strong style="color:var(--green)">+0.089</strong>.</div>
+      </div>
+      <div class="highlight-box" style="margin-top:8px">
+        <div style="font-weight:700;font-size:12px;margin-bottom:6px">Jangka Menengah (Revisi Kurikulum Besar)</div>
+        <div style="font-size:11px;color:var(--text2);line-height:1.8">Tambahkan 4 CPL baru (CPL-16 hingga CPL-19) untuk menutup gap di domain GenAI, MLOps, API Architecture, dan Digital Forensics sesuai tren industri terkini.</div>
+      </div>
+    </div>`;
+
+  document.getElementById('cpl-career-map').innerHTML = cplData.map(c=>{
+    const topJobs = Object.entries(careerData).flatMap(([d,jobs])=>jobs.map(j=>({...j,domain:d}))).filter(j=>j.match>=72).slice(0,3);
+    return `
+    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <span style="font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--cpl);font-weight:700">${c.id}</span>
+        <span style="font-size:11px;font-weight:800;font-family:'IBM Plex Mono',monospace;color:${getColor(c.cri)}">${c.cri.toFixed(3)}</span>
+      </div>
+      <div style="font-size:11px;color:var(--text2);margin-bottom:8px">${c.text.substring(0,55)}...</div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap">${topJobs.map(j=>`<span style="background:rgba(0,229,255,.06);border:1px solid rgba(0,229,255,.15);border-radius:4px;padding:2px 7px;font-size:9px;color:var(--text2)">${j.title}</span>`).join('')}</div>
+    </div>`;}).join('');
+}
+
+// ═══════════════════════════════════════
+// KNOWLEDGE GRAPH
+// ═══════════════════════════════════════
+let kgSvgEl, kgZoomBeh, kgSimulation, kgActiveFilter='all';
+
+const kgMappings = {
+  'CPL-01':[ {fw:'ESCO',id:'ESCO:S4.7.0',label:'computer programming',sfinal:0.891,rel:'isRelatedTo'},
+             {fw:'ESCO',id:'ESCO:S4.7.1',label:'algorithms',sfinal:0.856,rel:'narrowerSkillOf'},
+             {fw:'ONET',id:'ONET:15-1252',label:'Software Developers',sfinal:0.812,rel:'—'},
+             {fw:'SKKNI',id:'SKKNI:J63OPR',label:'Operator Komputer',sfinal:0.745,rel:'—'} ],
+  'CPL-02':[ {fw:'ESCO',id:'ESCO:S4.7.2',label:'database design',sfinal:0.867,rel:'isRelatedTo'},
+             {fw:'ESCO',id:'ESCO:S4.7.3',label:'relational databases',sfinal:0.834,rel:'broaderSkillOf'},
+             {fw:'ONET',id:'ONET:15-1245',label:'Database Administrators',sfinal:0.798,rel:'—'},
+             {fw:'SKKNI',id:'SKKNI:J63ADM',label:'Administrasi BD',sfinal:0.712,rel:'—'} ],
+  'CPL-03':[ {fw:'ESCO',id:'ESCO:S5.1.0',label:'cybersecurity',sfinal:0.845,rel:'isRelatedTo'},
+             {fw:'ESCO',id:'ESCO:S5.1.1',label:'information security',sfinal:0.821,rel:'narrowerSkillOf'},
+             {fw:'ONET',id:'ONET:15-1212',label:'Info Security Analysts',sfinal:0.798,rel:'—'},
+             {fw:'SKKNI',id:'SKKNI:J63SEC',label:'Keamanan Sistem',sfinal:0.701,rel:'—'} ],
+  'CPL-04':[ {fw:'ESCO',id:'ESCO:S4.7.0',label:'computer programming',sfinal:0.812,rel:'isRelatedTo'},
+             {fw:'ESCO',id:'ESCO:S4.9.1',label:'web development',sfinal:0.834,rel:'isRelatedTo'},
+             {fw:'ONET',id:'ONET:15-1252',label:'Software Developers',sfinal:0.798,rel:'—'},
+             {fw:'SKKNI',id:'SKKNI:J63DEV',label:'Pengembang Aplikasi',sfinal:0.734,rel:'—'} ],
+  'CPL-05':[ {fw:'ESCO',id:'ESCO:S7.1.0',label:'project management',sfinal:0.834,rel:'isRelatedTo'},
+             {fw:'ONET',id:'ONET:15-1299',label:'Software QA Analysts',sfinal:0.798,rel:'—'},
+             {fw:'SKKNI',id:'SKKNI:J63MGR',label:'Manajer Proyek TI',sfinal:0.756,rel:'—'} ],
+  'CPL-06':[ {fw:'ESCO',id:'ESCO:S5.2.0',label:'network administration',sfinal:0.798,rel:'isRelatedTo'},
+             {fw:'ESCO',id:'ESCO:S5.2.1',label:'computer networks',sfinal:0.776,rel:'narrowerSkillOf'},
+             {fw:'ONET',id:'ONET:15-1241',label:'Computer Network Architects',sfinal:0.754,rel:'—'},
+             {fw:'SKKNI',id:'SKKNI:J63NET',label:'Teknisi Jaringan',sfinal:0.689,rel:'—'} ],
+  'CPL-07':[ {fw:'ESCO',id:'ESCO:S4.8.1',label:'artificial intelligence',sfinal:0.845,rel:'isRelatedTo'},
+             {fw:'ESCO',id:'ESCO:S4.8.2',label:'machine learning',sfinal:0.823,rel:'narrowerSkillOf'},
+             {fw:'ONET',id:'ONET:15-2051',label:'Data Scientists',sfinal:0.787,rel:'—'},
+             {fw:'SKKNI',id:'SKKNI:J63AKD',label:'Analis Data',sfinal:0.698,rel:'—'} ],
+  'CPL-08':[ {fw:'ESCO',id:'ESCO:S4.8.3',label:'data analysis',sfinal:0.812,rel:'isRelatedTo'},
+             {fw:'ESCO',id:'ESCO:S4.8.2',label:'machine learning',sfinal:0.767,rel:'broaderSkillOf'},
+             {fw:'ONET',id:'ONET:15-2051',label:'Data Scientists',sfinal:0.754,rel:'—'},
+             {fw:'SKKNI',id:'SKKNI:J63AKD',label:'Analis Data',sfinal:0.712,rel:'—'} ],
+  'CPL-09':[ {fw:'ESCO',id:'ESCO:S9.1.0',label:'professional ethics',sfinal:0.731,rel:'isRelatedTo'},
+             {fw:'ONET',id:'ONET:23-1011',label:'IT Compliance Officers',sfinal:0.689,rel:'—'} ],
+  'CPL-10':[ {fw:'ESCO',id:'ESCO:S7.2.0',label:'teamwork',sfinal:0.712,rel:'isRelatedTo'},
+             {fw:'ONET',id:'ONET:11-9199',label:'IT Managers',sfinal:0.668,rel:'—'} ],
+  'CPL-11':[ {fw:'ESCO',id:'ESCO:S4.7.5',label:'software testing',sfinal:0.689,rel:'isRelatedTo'},
+             {fw:'ESCO',id:'ESCO:S4.7.6',label:'quality assurance',sfinal:0.667,rel:'narrowerSkillOf'},
+             {fw:'ONET',id:'ONET:15-1253',label:'Software QA Analysts',sfinal:0.645,rel:'—'},
+             {fw:'SKKNI',id:'SKKNI:J63QA',label:'Penjamin Mutu PL',sfinal:0.623,rel:'—'} ],
+  'CPL-12':[ {fw:'ESCO',id:'ESCO:S5.3.0',label:'cloud computing',sfinal:0.665,rel:'isRelatedTo'},
+             {fw:'ONET',id:'ONET:15-1199',label:'Cloud Architects',sfinal:0.624,rel:'—'} ],
+  'CPL-13':[ {fw:'ESCO',id:'ESCO:S4.9.2',label:'user interface design',sfinal:0.643,rel:'isRelatedTo'},
+             {fw:'ONET',id:'ONET:15-1255',label:'UX Researchers',sfinal:0.601,rel:'—'} ],
+  'CPL-14':[ {fw:'ESCO',id:'ESCO:S7.1.1',label:'agile methodology',sfinal:0.621,rel:'isRelatedTo'},
+             {fw:'ONET',id:'ONET:15-1299',label:'Software QA Analysts',sfinal:0.578,rel:'—'} ],
+  'CPL-15':[ {fw:'ESCO',id:'ESCO:S5.4.0',label:'internet of things',sfinal:0.612,rel:'isRelatedTo'},
+             {fw:'ONET',id:'ONET:17-2072',label:'Electronics Engineers',sfinal:0.568,rel:'—'} ],
+};
+
+const escoInternalRels = [
+  ['ESCO:S4.7.0','ESCO:S4.7.1','narrowerSkillOf',0.72],
+  ['ESCO:S4.8.1','ESCO:S4.8.2','narrowerSkillOf',0.79],
+  ['ESCO:S4.7.2','ESCO:S4.7.3','broaderSkillOf',0.68],
+  ['ESCO:S5.1.0','ESCO:S5.1.1','narrowerSkillOf',0.75],
+  ['ESCO:S4.7.5','ESCO:S4.7.6','narrowerSkillOf',0.70],
+  ['ESCO:S4.8.2','ESCO:S4.8.3','broaderSkillOf',0.65],
+  ['ESCO:S4.7.0','ESCO:S4.9.1','isRelatedTo',0.61],
+  ['ESCO:S5.2.0','ESCO:S5.2.1','narrowerSkillOf',0.73],
+];
+
+function buildKGData(filter) {
+  const nodeMap = {};
+  const links = [];
+  const fwColors = {CPL:'#a78bfa',ESCO:'#00e5ff',ONET:'#ffb020',SKKNI:'#00d68f'};
+  const fwR = {CPL:16,ESCO:11,ONET:10,SKKNI:10};
+
+  const addNode = (id,label,fw,cri) => {
+    if (!nodeMap[id]) nodeMap[id] = {id,label,fw,cri,color:fwColors[fw],r:fwR[fw]};
+  };
+
+  cplData.forEach(c=>{
+    addNode(c.id, c.id, 'CPL', c.cri);
+    const maps = kgMappings[c.id]||[];
+    maps.forEach(m=>{
+      const show = filter==='all' || filter===m.fw || filter==='CPL';
+      if(!show) return;
+      addNode(m.id, m.label, m.fw, m.sfinal);
+      links.push({source:c.id,target:m.id,sfinal:m.sfinal,type:'mapping',rel:m.rel,fw:m.fw});
+    });
+  });
+
+  if(filter==='all'||filter==='ESCO') {
+    escoInternalRels.forEach(([s,t,rel,sf])=>{
+      if(nodeMap[s]&&nodeMap[t]) links.push({source:s,target:t,sfinal:sf,type:'ontology',rel,fw:'ESCO'});
+    });
+  }
+  return {nodes:Object.values(nodeMap),links};
+}
+
+function renderKG(filter='all') {
+  const container = document.getElementById('kg-svg').parentElement;
+  const W = container.clientWidth||900, H=540;
+  const svg = d3.select('#kg-svg');
+  svg.selectAll('*').remove();
+
+  const {nodes,links} = buildKGData(filter);
+  document.getElementById('kg-stats').textContent = `nodes: ${nodes.length} · edges: ${links.length}`;
+
+  const g = svg.append('g');
+  kgZoomBeh = d3.zoom().scaleExtent([0.2,4])
+    .on('zoom', e=>g.attr('transform',e.transform));
+  svg.call(kgZoomBeh);
+  kgSvgEl = svg;
+
+  // Arrow markers
+  const defs = svg.append('defs');
+  ['mapping','ontology'].forEach(t=>{
+    defs.append('marker').attr('id',`arr-${t}`)
+      .attr('viewBox','0 -4 8 8').attr('refX',22).attr('refY',0)
+      .attr('markerWidth',5).attr('markerHeight',5).attr('orient','auto')
+      .append('path').attr('d','M0,-4L8,0L0,4')
+      .attr('fill', t==='ontology'?'rgba(0,229,255,.5)':'rgba(255,255,255,.15)');
+  });
+
+  kgSimulation = d3.forceSimulation(nodes)
+    .force('link', d3.forceLink(links).id(d=>d.id)
+      .distance(d=>d.type==='ontology'?65:d.fw==='ESCO'?120:140).strength(0.35))
+    .force('charge', d3.forceManyBody().strength(-320))
+    .force('center', d3.forceCenter(W/2, H/2))
+    .force('collision', d3.forceCollide(d=>d.r+10));
+
+  // Links
+  const link = g.append('g').selectAll('line').data(links).enter().append('line')
+    .attr('stroke', d=> d.type==='ontology'?'rgba(0,229,255,.45)':
+      d.fw==='ESCO'?'rgba(0,229,255,.22)':d.fw==='ONET'?'rgba(255,176,32,.22)':'rgba(0,214,143,.22)')
+    .attr('stroke-width', d=>Math.max(1, d.sfinal*3))
+    .attr('stroke-dasharray', d=>d.type==='ontology'?'5,3':null)
+    .attr('marker-end', d=>`url(#arr-${d.type})`);
+
+  // Node groups
+  const nodeG = g.append('g').selectAll('g').data(nodes).enter().append('g')
+    .attr('cursor','pointer')
+    .call(d3.drag()
+      .on('start',(e,d)=>{if(!e.active)kgSimulation.alphaTarget(.3).restart();d.fx=d.x;d.fy=d.y;})
+      .on('drag', (e,d)=>{d.fx=e.x;d.fy=e.y;})
+      .on('end',  (e,d)=>{if(!e.active)kgSimulation.alphaTarget(0);d.fx=null;d.fy=null;}));
+
+  // Glow filter
+  const filt = defs.append('filter').attr('id','glow');
+  filt.append('feGaussianBlur').attr('stdDeviation','3').attr('result','blur');
+  filt.append('feMerge').selectAll('feMergeNode').data(['blur','SourceGraphic']).enter()
+    .append('feMergeNode').attr('in',d=>d);
+
+  nodeG.append('circle')
+    .attr('r', d=>d.r)
+    .attr('fill', d=>`${d.color}18`)
+    .attr('stroke', d=>d.color)
+    .attr('stroke-width', d=>d.fw==='CPL'?2.5:1.5)
+    .attr('filter', d=>d.fw==='CPL'?'url(#glow)':null)
+    .on('mouseover', (e,d)=>showKGDetail(d))
+    .on('mouseout',  ()=>document.getElementById('kg-node-detail').style.display='none')
+    .on('click', (e,d)=>{ if(d.fw==='CPL'){selectCPL(d.id);showKGEvidence(d.id);} });
+
+  // CPL labels inside circle
+  nodeG.filter(d=>d.fw==='CPL').append('text')
+    .text(d=>d.id.replace('CPL-',''))
+    .attr('text-anchor','middle').attr('dominant-baseline','middle')
+    .attr('font-size',9).attr('font-family','IBM Plex Mono').attr('font-weight','700')
+    .attr('fill','#a78bfa').attr('pointer-events','none');
+
+  // Framework node tiny labels
+  nodeG.filter(d=>d.fw!=='CPL').append('text')
+    .text(d=>d.label.length>16?d.label.substring(0,14)+'…':d.label)
+    .attr('y', d=>d.r+11).attr('text-anchor','middle')
+    .attr('font-size',7.5).attr('font-family','IBM Plex Mono')
+    .attr('fill', d=>d.color).attr('opacity',.75).attr('pointer-events','none');
+
+  kgSimulation.on('tick',()=>{
+    link.attr('x1',d=>d.source.x).attr('y1',d=>d.source.y)
+        .attr('x2',d=>d.target.x).attr('y2',d=>d.target.y);
+    nodeG.attr('transform',d=>`translate(${d.x},${d.y})`);
+  });
+
+  renderKGStatsPanel();
+}
+
+function showKGDetail(d) {
+  const panel = document.getElementById('kg-node-detail');
+  const fwColor = {CPL:'var(--cpl)',ESCO:'var(--esco)',ONET:'var(--onet)',SKKNI:'var(--skkni)'}[d.fw];
+  document.getElementById('kg-nd-type').style.color = fwColor;
+  document.getElementById('kg-nd-type').textContent = d.fw + ' · ' + (d.fw==='CPL'?'Capaian Pembelajaran Lulusan':'Kompetensi Terstandar');
+  document.getElementById('kg-nd-name').textContent = d.fw==='CPL'? cplData.find(c=>c.id===d.id)?.text||d.id : d.label;
+  document.getElementById('kg-nd-rows').innerHTML = [
+    ['ID', d.id.replace(/.*:/,'')],
+    ['CRI-KG / Score', d.cri?.toFixed(3)||'—'],
+    ['Framework', d.fw],
+    d.fw==='CPL'?['Domain', cplData.find(c=>c.id===d.id)?.domain||'—']:['Relasi tersedia', (kgMappings[d.id]||[]).length+' mapping'],
+  ].map(([k,v])=>`<div style="display:flex;justify-content:space-between;font-size:10px;font-family:'IBM Plex Mono',monospace;padding:4px 0;border-bottom:1px solid var(--border);color:var(--text3)"><span>${k}</span><span style="color:var(--text2)">${v}</span></div>`).join('');
+  panel.style.display='block';
+}
+
+function showKGEvidence(cplId) {
+  const maps = kgMappings[cplId]||[];
+  const cpl = cplData.find(c=>c.id===cplId);
+  const fwColor = {ESCO:'var(--esco)',ONET:'var(--onet)',SKKNI:'var(--skkni)'};
+  document.getElementById('kg-evidence').innerHTML = `
+    <div style="margin-bottom:12px;background:var(--bg3);border-radius:8px;padding:10px 14px;border-left:3px solid var(--cpl)">
+      <div style="font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--cpl);margin-bottom:4px">${cplId} · CRI-KG: ${cpl.cri.toFixed(3)}</div>
+      <div style="font-size:12px;font-weight:600">${cpl.text}</div>
+    </div>
+    <div style="font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--text3);letter-spacing:.8px;margin-bottom:8px">EVIDENCE PATHS (${maps.length} accepted mappings)</div>
+    ${maps.map((m,i)=>`
+      <div style="display:flex;align-items:center;gap:10px;background:var(--bg3);border-radius:7px;padding:9px 12px;margin-bottom:5px;border:1px solid var(--border)">
+        <div style="width:22px;height:22px;border-radius:50%;background:${fwColor[m.fw]||'var(--cyan)'}18;border:1.5px solid ${fwColor[m.fw]||'var(--cyan)'};display:flex;align-items:center;justify-content:center;font-size:7px;font-family:'IBM Plex Mono',monospace;color:${fwColor[m.fw]||'var(--cyan)'};flex-shrink:0">${m.fw.substring(0,2)}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${m.label}</div>
+          <div style="font-size:9px;color:var(--text3);font-family:'IBM Plex Mono',monospace">${m.id.replace(/.*:/,'')} · ${m.rel}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-size:13px;font-weight:800;font-family:'IBM Plex Mono',monospace;color:${m.sfinal>=0.8?'var(--green)':m.sfinal>=0.7?'var(--cyan)':'var(--amber)'}">${m.sfinal.toFixed(3)}</div>
+          <div style="font-size:8px;color:var(--text3)">S_final</div>
+        </div>
+      </div>`).join('')}`;
+}
+
+function renderKGStatsPanel() {
+  const allMaps = Object.values(kgMappings).flat();
+  const byFw = {ESCO:0,ONET:0,SKKNI:0};
+  allMaps.forEach(m=>byFw[m.fw]=(byFw[m.fw]||0)+1);
+  const avgByFw = {ESCO:0,ONET:0,SKKNI:0};
+  ['ESCO','ONET','SKKNI'].forEach(fw=>{
+    const scores = allMaps.filter(m=>m.fw===fw).map(m=>m.sfinal);
+    avgByFw[fw] = scores.length ? scores.reduce((a,b)=>a+b,0)/scores.length : 0;
+  });
+  const fwColor = {ESCO:'var(--esco)',ONET:'var(--onet)',SKKNI:'var(--skkni)'};
+  document.getElementById('kg-stats-panel').innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:12px">
+      ${['ESCO','ONET','SKKNI'].map(fw=>`
+        <div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+            <span style="font-size:12px;font-weight:700;color:${fwColor[fw]}">${fw}</span>
+            <span style="font-size:11px;font-family:'IBM Plex Mono',monospace;color:var(--text2)">${byFw[fw]} mappings · avg ${avgByFw[fw].toFixed(3)}</span>
+          </div>
+          <div style="height:7px;background:var(--bg4);border-radius:4px;overflow:hidden">
+            <div style="height:100%;width:${(byFw[fw]/allMaps.length)*100}%;background:${fwColor[fw]};border-radius:4px;transition:width 1s"></div>
+          </div>
+        </div>`).join('')}
+      <div class="section-divider"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        ${[
+          ['Total Mappings', allMaps.length,'var(--cyan)'],
+          ['Internal ESCO Rels', escoInternalRels.length,'var(--esco)'],
+          ['CPL Nodes', 15,'var(--cpl)'],
+          ['Avg S_final', (allMaps.reduce((a,b)=>a+b.sfinal,0)/allMaps.length).toFixed(3),'var(--green)'],
+        ].map(([l,v,c])=>`<div style="background:var(--bg3);border-radius:7px;padding:10px;text-align:center"><div style="font-size:18px;font-weight:800;color:${c};font-family:'IBM Plex Mono',monospace">${v}</div><div style="font-size:9px;color:var(--text3);margin-top:2px">${l}</div></div>`).join('')}
+      </div>
+    </div>`;
+}
+
+function filterKG(val) { kgActiveFilter=val; renderKG(val); }
+function kgZoom(factor) { if(kgSvgEl&&kgZoomBeh) kgSvgEl.transition().call(kgZoomBeh.scaleBy,factor); }
+function kgReset() { if(kgSvgEl&&kgZoomBeh) kgSvgEl.transition().call(kgZoomBeh.transform,d3.zoomIdentity.translate(0,0).scale(1)); }
+
+// ═══════════════════════════════════════
+// VIEW SWITCHING
+// ═══════════════════════════════════════
+function sw(v) {
+  document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));
+  document.getElementById(`view-${v}`).classList.add('active');
+  document.querySelector(`nav button[onclick="sw('${v}')"]`).classList.add('active');
+  if(v==='kg'){setTimeout(()=>renderKG(kgActiveFilter),80);}
+  if(v==='career'){renderCareer();setTimeout(renderSankey,100);}
+  if(v==='improve'){renderStrengthList();renderZoneChart();renderImproveCards();}
+  if(v==='gap'){renderGapTable();setTimeout(renderRadarGap,100);renderNewCPL();}
+  if(v==='report'){renderReport();}
+}
+
+// ═══════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════
+renderCPLList(cplData);
+renderCRIBars();
+renderDashDetail('CPL-01');
+</script>
+</body>
+</html>
